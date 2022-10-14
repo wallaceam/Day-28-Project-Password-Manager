@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 from random import choice, randint, shuffle
 import pyperclip
+import json
 
 BLACK = "#000000"
 WHITE = "#FFFFFF"
@@ -32,20 +33,50 @@ def add_entry():
     website = website_entry.get()
     user = user_entry.get()
     pw = pass_entry.get()
+    new_data = {
+        website: {
+            "username": user,
+            "password": pw
+        }
+    }
 
     if website == "" or user == "" or pw == "":
         messagebox.showerror(title="Empty Field", message="All fields must contain an entry to save.")
         return
     else:
-        is_ok = messagebox.askokcancel(title=website,
-                                       message=f"Save this data?\nWebsite: {website}\nUsername: {user}\nPassword: {pw}")
-        if is_ok:
-            with open("data.txt", mode="a") as record:
-                record.write(f"{website} | {user} | {pw}\n")
+        try:
+            with open("data.json", mode="r") as record:
+                json.load(record)
+        except FileNotFoundError:
+            with open("data.json", mode="w") as record:
+                json.dump(new_data, record, indent=4)
+        else:
+            with open("data.json", mode="r") as record:
+                data = json.load(record)
+                data.update(new_data)
+            with open("data.json", mode="w") as record:
+                json.dump(data, record, indent=4)
+        finally:
             website_entry.delete(0, END)
             pass_entry.delete(0, END)
             website_entry.focus()
 
+
+# ---------------------------- RETRIEVE PASSWORD ------------------------------- #
+def get_pw():
+    website = website_entry.get()
+    try:
+        with open("data.json") as record:
+            data = json.load(record)
+    except FileNotFoundError:
+        messagebox.showerror(title="Error", message="No data file found.")
+    else:
+        if website in data:
+            username = data[website]["username"]
+            pw = data[website]["password"]
+            messagebox.showinfo(title=website, message=f"Username: {username}\nPassword: {pw}")
+        else:
+            messagebox.showerror("Not Found", f"There is no saved data for {website}.")
 
 # ---------------------------- UI SETUP ------------------------------- #
 window = Tk()
@@ -62,9 +93,12 @@ website_label = Label(bg=WHITE, fg=BLACK, text="Website:")
 website_label.grid(row=1, column=0)
 
 website_entry = Entry(bg=WHITE, fg=BLACK, highlightbackground=WHITE, insertbackground=BLACK)
-website_entry.config(width=38)
-website_entry.grid(row=1, column=1, columnspan=2)
+website_entry.config(width=21)
+website_entry.grid(row=1, column=1)
 website_entry.focus()
+
+website_search = Button(bg=WHITE, fg=BLACK, text="Search", highlightbackground=WHITE, command=get_pw, width=13)
+website_search.grid(row=1, column=2)
 
 # Email/Username
 user_label = Label(bg=WHITE, fg=BLACK, text="Email/Username:")
